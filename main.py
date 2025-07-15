@@ -1,8 +1,10 @@
 import cloudscraper
 import time
-import chat
 import asyncio
+import chat
 import config
+import stream_kick_to_telegram
+import threading
 
 def esta_en_directo(nombre_canal):
     scraper = cloudscraper.create_scraper()
@@ -21,21 +23,36 @@ def esta_en_directo(nombre_canal):
         print(f"⚠️ Error al consultar el canal: {e}")
         return False
 
+def lanzar_chat(canal):
+    chatroom_id = chat.obtener_chatroom_id(canal)
+    if chatroom_id:
+        asyncio.run(chat.escuchar_chat(chatroom_id))
+    else:
+        print(f"❌ No se pudo obtener el chatroom ID para el canal '{canal}'.")
+
 if __name__ == "__main__":
     canal = config.CANAL_A_STREMEAR
-    intervalo = 1  # segundos entre comprobaciones
+    intervalo = 10  # segundos entre comprobaciones
 
     while True:
         if esta_en_directo(canal):
             print(f"¡El canal '{canal}' ya está en directo! Puedes comenzar a streamear.")
-            
-            # Obtiene chatroom_id y luego escucha el chat con asyncio.run
-            chatroom_id = chat.obtener_chatroom_id(canal)
-            if chatroom_id:
-                asyncio.run(chat.escuchar_chat(chatroom_id))
-            else:
-                print(f"❌ No se pudo obtener el chatroom ID para el canal '{canal}'.")
-                
+
+            # Lanza el stream ffmpeg no bloqueante
+            proceso_ffmpeg = stream_kick_to_telegram.stream_kick_canal(canal)
+            if not proceso_ffmpeg:
+                print("Error al iniciar la transmisión. Abortando.")
+                break
+
+            # Lanza el chat en hilo para que corra paralelo
+            hilo_chat = threading.Thread(target=lanzar_chat, args=(canal,), daemon=True)
+            hilo_chat.start()
+
+            # Espera a que el proceso ffmpeg termine (o pon lógica de reconexión)
+            proceso_ffmpeg.wait()
+            print("La transmisión ffmpeg ha finalizado.")
+
+            # Opcional: salir o intentar reconectar
             break
         else:
             print(f"Volver a comprobar el canal '{canal}' en {intervalo} segundos...\n")

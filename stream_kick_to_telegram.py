@@ -1,56 +1,40 @@
+import cloudscraper
+import re
 import subprocess
-import sys
-import requests
 import config
 
-def obtener_url_stream_kick(canal):
-    url_api = f"https://kick.com/api/v1/channels/{canal}/stream"
+def obtener_stream_hls_kick(canal):
+    scraper = cloudscraper.create_scraper()
+    url = f"https://kick.com/{canal}"
     try:
-        response = requests.get(url_api, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        # Dependiendo de la estructura, ajustar la extracción del URL HLS o RTMP
-        # Aquí asumo que hay un campo "streamUrl" (ajusta según respuesta real)
-        stream_url = data.get("streamUrl")
-        if not stream_url:
-            # Intenta otras posibles claves, ejemplo:
-            stream_url = data.get("stream", {}).get("source", {}).get("url")
-        if stream_url:
-            print(f"URL del stream de Kick: {stream_url}")
-            return stream_url
+        pagina = scraper.get(url, timeout=10).text
+        # Regex corregido para limitar URL hasta .m3u8 sin coger html adicional
+        urls_m3u8 = re.findall(r'https://[^\s"\']+?\.m3u8', pagina)
+        if urls_m3u8:
+            print(f"URL HLS encontrada: {urls_m3u8[0]}")
+            return urls_m3u8[0]
         else:
-            print("No se encontró URL del stream en la respuesta.")
+            print("No se encontró URL .m3u8 en la página.")
             return None
     except Exception as e:
-        print(f"Error al obtener URL del stream: {e}")
+        print(f"Error al obtener stream HLS: {e}")
         return None
 
-def stream_to_telegram(input_url, rtmp_url, stream_key):
-    full_rtmp = f"{rtmp_url}/{stream_key}"
+def stream_kick_canal(canal):
+    print(f"Obteniendo stream para canal Kick: {canal}")
+    url_hls = obtener_stream_hls_kick(canal)
+    if not url_hls:
+        print("No se pudo obtener el stream HLS. Abortando.")
+        return None
+    
+    full_rtmp = f"{config.TELEGRAM_RTMP_URL}/{config.TELEGRAM_STREAM_KEY}"
     print(f"Iniciando transmisión a Telegram: {full_rtmp}")
-    
-    # Comando ffmpeg para reenviar stream
-    # Asumiendo input_url es HLS o similar
-    command = [
-        "ffmpeg",
-        "-i", input_url,
-        "-c", "copy",
-        "-f", "flv",
-        full_rtmp
-    ]
-    
-    # Ejecuta ffmpeg y redirige salida a consola
-    process = subprocess.Popen(command)
-    process.communicate()
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Uso: python stream_kick_to_telegram.py <canal_kick>")
-        sys.exit(1)
-
-    canal = sys.argv[1]
-    stream_url = obtener_url_stream_kick(canal)
-    if stream_url:
-        stream_to_telegram(stream_url, config.TELEGRAM_RTMP_URL, config.TELEGRAM_STREAM_KEY)
-    else:
-        print("No se pudo obtener el stream para iniciar la transmisión.")
+    command_str = f'ffmpeg -i "{url_hls}" -c copy -f flv "{full_rtmp}"'
+    
+    try:
+        process = subprocess.Popen(command_str, shell=True)
+        return process
+    except Exception as e:
+        print(f"Error al iniciar ffmpeg: {e}")
+        return None
