@@ -3,9 +3,10 @@ import json
 import websockets
 import requests
 import cloudscraper
+from collections import deque
 
 def obtener_chatroom_id(username):
-    scraper = cloudscraper.create_scraper()  # Simula navegador con cookies y JS
+    scraper = cloudscraper.create_scraper()
     url = f"https://kick.com/api/v1/channels/{username}"
 
     try:
@@ -22,10 +23,11 @@ def obtener_chatroom_id(username):
     except Exception as e:
         print(f"❌ Error: {e}")
     return None
-    
-#Escucha el chat de un chatroom y lo pinta en consola
+
 async def escuchar_chat(chatroom_id):
     ws_url = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=7.6.0"
+    mensajes = deque(maxlen=5)  # Guardará los últimos 5 mensajes
+
     async with websockets.connect(ws_url) as websocket:
         join_payload = {
             "event": "pusher:subscribe",
@@ -41,11 +43,19 @@ async def escuchar_chat(chatroom_id):
             try:
                 msg = await websocket.recv()
                 payload = json.loads(msg)
+
                 if payload.get("event") == "App\\Events\\ChatMessageEvent":
                     message_data = json.loads(payload["data"])
                     username = message_data["sender"]["username"]
                     message = message_data["content"]
-                    print(f"{username}: {message}")
+                    mensaje_formateado = f"{username}: {message}"
+
+                    mensajes.append(mensaje_formateado)
+
+                    # Escribir todos los mensajes en chat.txt
+                    with open("chat.txt", "w", encoding="utf-8") as f:
+                        f.write("\n".join(mensajes))
+
             except Exception as e:
-                print(f"⚠️ Error: {e}")
+                print(f"⚠️ Error en websocket: {e}")
                 break
