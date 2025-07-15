@@ -2,6 +2,7 @@ import cloudscraper
 import time
 import chat
 import asyncio
+import config
 
 def esta_en_directo(nombre_canal):
     scraper = cloudscraper.create_scraper()
@@ -21,7 +22,7 @@ def esta_en_directo(nombre_canal):
         return False
 
 if __name__ == "__main__":
-    canal = input("¿Qué canal quieres stremear? ").strip()
+    canal = config.CANAL_A_STREMEAR
     intervalo = 1  # segundos entre comprobaciones
 
     while True:
