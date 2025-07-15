@@ -39,7 +39,7 @@ if __name__ == "__main__":
             print(f"¡El canal '{canal}' ya está en directo! Puedes comenzar a streamear.")
 
             # Lanza el stream ffmpeg no bloqueante
-            proceso_ffmpeg = stream_kick_to_telegram.stream_kick_canal(canal)
+            proceso_ffmpeg = stream_kick_to_telegram.stream_kick_canal_con_streamlink(canal)
             if not proceso_ffmpeg:
                 print("Error al iniciar la transmisión. Abortando.")
                 break
