@@ -26,7 +26,7 @@ def obtener_chatroom_id(username):
 
 async def escuchar_chat(chatroom_id):
     ws_url = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=7.6.0"
-    mensajes = deque(maxlen=5)  # Guardará los últimos 5 mensajes
+    mensajes = deque(maxlen=20)  # Guardará los últimos 20 mensajes
 
     async with websockets.connect(ws_url) as websocket:
         join_payload = {

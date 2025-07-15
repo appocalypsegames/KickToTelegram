@@ -38,12 +38,28 @@ def stream_kick_canal_con_streamlink(canal):
         ffmpeg_cmd = [
             "ffmpeg",
             "-re",
-            "-i", "pipe:0",  # lee desde stdin (streamlink)
-            "-c:v", "copy",
+            "-i", "pipe:0",  # streamlink -> ffmpeg
+            "-vf",
+            (
+                "drawtext=textfile=chat.txt:"
+                "reload=1:"
+                "fontcolor=white:"
+                "fontsize=22:"
+                "x=20:"
+                "y=h-180:"
+                "line_spacing=5:"
+                "fontfile=/Windows/Fonts/arial.ttf:"
+                "box=1:"
+                "boxcolor=black@0.5:"
+                "boxborderw=10"
+            ),
+            "-c:v", "libx264",
+            "-preset", "veryfast",
             "-c:a", "aac",
             "-f", "flv",
             rtmp_url
         ]
+
 
         # Lanza streamlink y pasa salida a ffmpeg
         streamlink_proc = subprocess.Popen(streamlink_cmd, stdout=subprocess.PIPE)
