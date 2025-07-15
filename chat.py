@@ -4,6 +4,7 @@ import websockets
 import requests
 import cloudscraper
 from collections import deque
+import textwrap
 
 def obtener_chatroom_id(username):
     scraper = cloudscraper.create_scraper()
@@ -23,6 +24,9 @@ def obtener_chatroom_id(username):
     except Exception as e:
         print(f"❌ Error: {e}")
     return None
+
+def dividir_mensaje(texto, ancho=40):
+    return textwrap.wrap(texto, width=ancho)
 
 async def escuchar_chat(chatroom_id):
     ws_url = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=7.6.0"
@@ -47,10 +51,15 @@ async def escuchar_chat(chatroom_id):
                 if payload.get("event") == "App\\Events\\ChatMessageEvent":
                     message_data = json.loads(payload["data"])
                     username = message_data["sender"]["username"]
-                    message = message_data["content"]
-                    mensaje_formateado = f"{username}: {message}"
+                    content = message_data["content"]
+                    mensaje = f"{username}: {content}"
 
-                    mensajes.append(mensaje_formateado)
+                    # Divide en líneas de máximo 40 caracteres
+                    lineas = dividir_mensaje(mensaje, ancho=60)
+
+                    # Añade cada línea al historial
+                    for linea in lineas:
+                        mensajes.append(linea)
 
                     # Escribir todos los mensajes en chat.txt
                     with open("chat.txt", "w", encoding="utf-8") as f:
