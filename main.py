@@ -5,6 +5,7 @@ import chat
 import config
 import stream_kick_to_telegram
 import threading
+import multiprocessing
 
 def esta_en_directo(nombre_canal):
     scraper = cloudscraper.create_scraper()
@@ -23,12 +24,18 @@ def esta_en_directo(nombre_canal):
         print(f"⚠️ Error al consultar el canal: {e}")
         return False
 
-def lanzar_chat(canal):
+def proceso_chat(canal):
+    import chat
+    import asyncio
     chatroom_id = chat.obtener_chatroom_id(canal)
     if chatroom_id:
         asyncio.run(chat.escuchar_chat(chatroom_id))
     else:
         print(f"❌ No se pudo obtener el chatroom ID para el canal '{canal}'.")
+
+def proceso_stream(canal):
+    import stream_kick_to_telegram
+    stream_kick_to_telegram.stream_kick_canal_con_streamlink(canal)
 
 if __name__ == "__main__":
     canal = config.CANAL_A_STREMEAR
@@ -37,15 +44,16 @@ if __name__ == "__main__":
     while True:
         if esta_en_directo(canal):
             print(f"¡El canal '{canal}' ya está en directo! Puedes comenzar a streamear.")
-            
-            # Obtiene chatroom_id y luego escucha el chat con asyncio.run
-            chatroom_id = chat.obtener_chatroom_id(canal)
-            if chatroom_id:
-                asyncio.run(chat.escuchar_chat(chatroom_id))
-            else:
-                print(f"❌ No se pudo obtener el chatroom ID para el canal '{canal}'.")
 
-            # Opcional: salir o intentar reconectar
+            p_chat = multiprocessing.Process(target=proceso_chat, args=(canal,))
+            p_stream = multiprocessing.Process(target=proceso_stream, args=(canal,))
+
+            p_chat.start()
+            p_stream.start()
+
+            p_chat.join()
+            p_stream.join()
+
             break
         else:
             print(f"Volver a comprobar el canal '{canal}' en {intervalo} segundos...\n")
