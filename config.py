@@ -1,3 +1,8 @@
 TELEGRAM_RTMP_URL = "rtmps://dc4-1.rtmp.t.me/s/"
 TELEGRAM_STREAM_KEY = "your_stream_key"
 KICK_CHANNEL = "your_kick_channel"
+
+TG_API_ID = 123456
+TG_API_HASH = "123456"
+TG_GROUP_ID = 123456
+TG_ACCESS_HASH = 123456
