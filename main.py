@@ -38,7 +38,7 @@ def proceso_stream(canal):
     stream_kick_to_telegram.stream_kick_canal_con_streamlink(canal)
 
 if __name__ == "__main__":
-    canal = config.CANAL_A_STREMEAR
+    canal = config.KICK_CHANNEL
     intervalo = 10  # segundos entre comprobaciones
 
     while True:
